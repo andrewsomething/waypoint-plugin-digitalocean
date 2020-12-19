@@ -55,6 +55,14 @@ make
 
 This will regenerate the protos and build binaries for multiple platforms.
 
+### Installation
+
+To install the binary to `${HOME}/.config/waypoint/plugins/` run:
+
+```shell
+make install
+```
+
 ### Building with Docker
 
 To build plugins for release you can use the `build-docker` Makefile target, this will
