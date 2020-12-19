@@ -160,7 +160,7 @@ func (p *Platform) deploy(
 	}
 
 	u.Update("Waiting for deployment to finish")
-	err = p.waitForAppDeployment(app.ID, u)
+	app, err = p.waitForAppDeployment(app.ID, u)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +241,7 @@ func (p *Platform) findExistingApp(name string, u terminal.Status) (string, erro
 	return "", nil
 }
 
-func (p *Platform) waitForAppDeployment(id string, u terminal.Status) error {
+func (p *Platform) waitForAppDeployment(id string, u terminal.Status) (*godo.App, error) {
 	tickerInterval := 10 //10s
 	timeout := 1800      //1800s, 30min
 	n := 0
@@ -257,7 +257,7 @@ func (p *Platform) waitForAppDeployment(id string, u terminal.Status) error {
 		if deploymentID == "" {
 			app, _, err := p.client.Apps.Get(context.Background(), id)
 			if err != nil {
-				return fmt.Errorf("Error trying to read app deployment state: %s", err)
+				return nil, fmt.Errorf("Error trying to read app deployment state: %s", err)
 			}
 
 			if app.InProgressDeployment != nil {
@@ -268,18 +268,23 @@ func (p *Platform) waitForAppDeployment(id string, u terminal.Status) error {
 			deployment, _, err := p.client.Apps.GetDeployment(context.Background(), id, deploymentID)
 			if err != nil {
 				ticker.Stop()
-				return fmt.Errorf("Error trying to read app deployment state: %s", err)
+				return nil, fmt.Errorf("Error trying to read app deployment state: %s", err)
 			}
 
 			allSuccessful := deployment.Progress.SuccessSteps == deployment.Progress.TotalSteps
 			if allSuccessful {
+				app, _, err := p.client.Apps.Get(context.Background(), id)
+				if err != nil {
+					return nil, fmt.Errorf("Error trying to read app deployment state: %s", err)
+				}
+
 				ticker.Stop()
-				return nil
+				return app, nil
 			}
 
 			if deployment.Progress.ErrorSteps > 0 {
 				ticker.Stop()
-				return fmt.Errorf("error deploying app (%s) (deployment ID: %s):\n%s", id, deployment.ID, godo.Stringify(deployment.Progress))
+				return nil, fmt.Errorf("error deploying app (%s) (deployment ID: %s):\n%s", id, deployment.ID, godo.Stringify(deployment.Progress))
 			}
 
 			u.Update(fmt.Sprintf("Waiting for app (%s) deployment (%s) to become active. Phase: %s (%d/%d)",
@@ -289,5 +294,5 @@ func (p *Platform) waitForAppDeployment(id string, u terminal.Status) error {
 		n++
 	}
 
-	return fmt.Errorf("timeout waiting to app (%s) deployment", id)
+	return nil, fmt.Errorf("timeout waiting to app (%s) deployment", id)
 }
