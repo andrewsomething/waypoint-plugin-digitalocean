@@ -8,5 +8,9 @@ option go_package = "github.com/andrewsomething/waypoint-plugin-digitalocean/pla
 // You can customise this message to change the fields for
 // the output value from your Deployment
 message Deployment {
-  string id = 1;
+  string app_id = 1;
+  string app_name = 2;
+  string default_ingress = 3;
+  string live_url = 4;
+  string active_deployment_id = 5;
 }

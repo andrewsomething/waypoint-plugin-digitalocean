@@ -1,43 +1,73 @@
-# Waypoint Plugin Template
+# DigitalOcean Waypoint Plugin
 
-This folder contains an example plugin structure which can be used when building your own plugins.
+This is a prototype DigitalOcean Waypoint plugin. It currently has _very_ basic
+support for deploying a Docker image from a DigitalOcean Container Registry to
+DigitalOcean App Platform. **It should be considered experimental.**
 
-## Steps
+## Configuration
 
-1. To scaffold a new plugin use the `./clone.sh` script passing the destination folder and the Go package
-for your new plugin as parameters
+A Waypoint configuration of this might look like:
 
-```shell
-./clone.sh myplugin ../destination_folder github.com/myorg/mypackage
+```hcl
+project = "example-nodejs"
+
+app "example-nodejs" {
+  build {
+    use "pack" {}
+    registry {
+        use "docker" {
+          image = "registry.digitalocean.com/<username>/example-nodejs"
+          tag   = "latest"
+        }
+    }
+ }
+
+  deploy {
+    use "digitalocean" {
+    }
+  }
+}
 ```
 
-2. You can then run the Makefile to compile the new plugin, the `Makefile` will build the plugin for all architectures.
+The following configuration options are supported. They are all optional.
+
+* access_token - Required if `DIGITALOCEAN_ACCESS_TOKEN` is not set
+* name - Defaults to the app's name
+* region - Defaults to nearest region
+* instance_size_slug - Defaults to `basic-xxs`
+* instance_count - Default to `1`
+* http_port - Default to `8080`
+* path - Default to `/`
+
+
+## Development
+
+### Building
+
+To build the plugin, run:
 
 ```shell
-cd ../destination_folder
-
 make
 ```
 
+This will regenerate the protos and build binaries for multiple platforms.
+
 ```shell
 Build Protos
-protoc -I . --go_out=plugins=grpc:. --go_opt=paths=source_relative ./builder/output.proto
-protoc -I . --go_out=plugins=grpc:. --go_opt=paths=source_relative ./registry/output.proto
 protoc -I . --go_out=plugins=grpc:. --go_opt=paths=source_relative ./platform/output.proto
-protoc -I . --go_out=plugins=grpc:. --go_opt=paths=source_relative ./release/output.proto
 
 Compile Plugin
 # Clear the output
 rm -rf ./bin
-GOOS=linux GOARCH=amd64 go build -o ./bin/linux_amd64/waypoint-plugin-mytest ./main.go 
-GOOS=darwin GOARCH=amd64 go build -o ./bin/darwin_amd64/waypoint-plugin-mytest ./main.go 
-GOOS=windows GOARCH=amd64 go build -o ./bin/windows_amd64/waypoint-plugin-mytest.exe ./main.go 
-GOOS=windows GOARCH=386 go build -o ./bin/windows_386/waypoint-plugin-mytest.exe ./main.go 
+GOOS=linux GOARCH=amd64 go build -o ./bin/linux_amd64/waypoint-plugin-digitalocean ./main.go
+GOOS=darwin GOARCH=amd64 go build -o ./bin/darwin_amd64/waypoint-plugin-digitalocean ./main.go
+GOOS=windows GOARCH=amd64 go build -o ./bin/windows_amd64/waypoint-plugin-digitalocean.exe ./main.go
+GOOS=windows GOARCH=386 go build -o ./bin/windows_386/waypoint-plugin-digitalocean.exe ./main.go
 ```
 
-## Building with Docker
+### Building with Docker
 
-To build plugins for release you can use the `build-docker` Makefile target, this will 
+To build plugins for release you can use the `build-docker` Makefile target, this will
 build your plugin for all architectures and create zipped artifacts which can be uploaded
 to an artifact manager such as GitHub releases.
 
@@ -62,7 +92,7 @@ DOCKER_BUILDKIT=1 docker build --output releases --progress=plain .
 #15 DONE 0.1s
 ```
 
-## Building and releasing with GitHub Actions
+### Building and releasing with GitHub Actions
 
 When cloning the template a default GitHub Action is created at the path `.github/workflows/build-plugin.yaml`. You can use this action to automatically build and release your plugin.
 

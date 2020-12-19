@@ -1,16 +1,21 @@
 package platform
 
-// Comment out the following functions to implement Authentication in
-// your component
+import (
+	"context"
+	"fmt"
 
-//func (p *Platform) ValidateAuthFunc() interface{} {
-//	return p.validateAuth
-//}
-//
-//// AuthFunc satisfies the Authenticator interface
-//func (p *Platform) AuthFunc() interface{} {
-//	return r.authenticate
-//}
+	"github.com/hashicorp/waypoint-plugin-sdk/component"
+	"github.com/hashicorp/waypoint-plugin-sdk/terminal"
+)
+
+func (p *Platform) ValidateAuthFunc() interface{} {
+	return p.validateAuth
+}
+
+// AuthFunc satisfies the Authenticator interface
+func (p *Platform) AuthFunc() interface{} {
+	return p.authenticate
+}
 
 // A ValidateAuthFunc does not have a strict signature, you can define the parameters
 // you need based on the Available parameters that the Waypoint SDK provides.
@@ -31,16 +36,25 @@ package platform
 //
 // If an error is returned, Waypoint will attempt to call
 // AuthFunc
-//func (p *Platform) validateAuth(
-//	ctx context.Context,
-//	ui terminal.UI,
-//) error {
-//	s := ui.Status()
-//	defer s.Close()
-//	s.Update("Validate authentication")
-//
-//	return fmt.Errorf("Unable to Authenticate")
-//}
+func (p *Platform) validateAuth(
+	ctx context.Context,
+	ui terminal.UI,
+) error {
+	s := ui.Status()
+	defer s.Close()
+	s.Update("Validating authentication")
+
+	if p.config.AccessToken != "" {
+		s.Update("Using configured access token")
+		account, _, err := p.client.Account.Get(ctx)
+		if err == nil {
+			s.Update(fmt.Sprintf("Authenticated as %s (%s)", account.Email, account.UUID))
+			return nil
+		}
+	}
+
+	return fmt.Errorf("Unable to Authenticate")
+}
 
 // A AuthFunc does not have a strict signature, you can define the parameters
 // you need based on the Available parameters that the Waypoint SDK provides.
@@ -60,12 +74,14 @@ package platform
 // - *component.LabelSet
 //
 // Output parameters must be *component.AuthResult, error
-//func (p *Platform) authenticate(
-//	ctx context.Context,
-//	ui terminal.UI,
-//) (*component.AuthResult, error) {
-//
-//	ui.Output("Describe the manual authentication steps here")
-//
-//	return &component.AuthResult{Authenticated: false}, nil
-//}
+func (p *Platform) authenticate(
+	ctx context.Context,
+	ui terminal.UI,
+) (*component.AuthResult, error) {
+
+	ui.Output("Configure an access token generate from: https://cloud.digitalocean.com/account/api/tokens/new")
+
+	// TODO: Prompt to provide token
+
+	return &component.AuthResult{Authenticated: false}, nil
+}
