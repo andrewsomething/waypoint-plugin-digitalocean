@@ -7,11 +7,7 @@ import (
 
 func main() {
 	sdk.Main(sdk.WithComponents(
-		// Comment out any components which are not
-		// required for your plugin
-		// &builder.Builder{},
-		// &registry.Registry{},
 		&platform.Platform{},
-		// &release.ReleaseManager{},
+		&platform.Releaser{},
 	))
 }

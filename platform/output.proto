@@ -11,6 +11,11 @@ message Deployment {
   string app_id = 1;
   string app_name = 2;
   string default_ingress = 3;
-  string live_url = 4;
+  string url = 4;
   string active_deployment_id = 5;
+}
+
+message Release {
+  string app_id = 1;
+  string url = 2;
 }

@@ -85,3 +85,5 @@ func (p *Platform) authenticate(
 
 	return &component.AuthResult{Authenticated: false}, nil
 }
+
+var _ component.Authenticator = (*Platform)(nil)

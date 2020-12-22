@@ -70,32 +70,24 @@ func (p *Platform) DeployFunc() interface{} {
 	return p.deploy
 }
 
-// A BuildFunc does not have a strict signature, you can define the parameters
-// you need based on the Available parameters that the Waypoint SDK provides.
-// Waypoint will automatically inject parameters as specified
-// in the signature at run time.
-//
-// Available input parameters:
-// - context.Context
-// - *component.Source
-// - *component.JobInfo
-// - *component.DeploymentConfig
-// - *datadir.Project
-// - *datadir.App
-// - *datadir.Component
-// - hclog.Logger
-// - terminal.UI
-// - *component.LabelSet
+// DefaultReleaserFunc implements component.PlatformReleaser
+func (p *Platform) DefaultReleaserFunc() interface{} {
+	return func() *Releaser {
+		return &Releaser{
+			config: ReleaseConfig{
+				AccessToken: p.config.AccessToken,
+			},
+		}
+	}
+}
 
-// In addition to default input parameters the registry.Artifact from the Build step
-// can also be injected.
-//
-// The output parameters for BuildFunc must be a Struct which can
-// be serialzied to Protocol Buffers binary format and an error.
-// This Output Value will be made available for other functions
-// as an input parameter.
-// If an error is returned, Waypoint stops the execution flow and
-// returns an error to the user.
+// DestroyFunc implements the Destroyer interface
+func (p *Platform) DestroyFunc() interface{} {
+	// This destroys a deployment. DO App Platform only has one active
+	// deployment at a time. We don't want to run a destroy here.
+	return nil
+}
+
 func (p *Platform) deploy(
 	ctx context.Context,
 	ui terminal.UI,
@@ -143,7 +135,7 @@ func (p *Platform) deploy(
 
 	app := &godo.App{}
 	if appID != "" {
-		u.Update(fmt.Sprintf("Creating new deployment for existing application: %s (%s)", name, appID))
+		log.Debug(fmt.Sprintf("Creating new deployment for existing application: %s (%s)", name, appID))
 		appUpdateRequest := &godo.AppUpdateRequest{Spec: spec}
 		app, _, err = p.client.Apps.Update(context.Background(), appID, appUpdateRequest)
 		if err != nil {
@@ -151,7 +143,7 @@ func (p *Platform) deploy(
 		}
 
 	} else {
-		u.Update(fmt.Sprintf("Creating new application: %s", name))
+		log.Debug(fmt.Sprintf("Creating new application: %s", name))
 		appCreateRequest := &godo.AppCreateRequest{Spec: spec}
 		app, _, err = p.client.Apps.Create(context.TODO(), appCreateRequest)
 		if err != nil {
@@ -169,12 +161,12 @@ func (p *Platform) deploy(
 		AppId:              app.ID,
 		AppName:            name,
 		DefaultIngress:     app.DefaultIngress,
-		LiveUrl:            app.LiveURL,
+		Url:                app.LiveURL,
 		ActiveDeploymentId: app.ActiveDeployment.ID,
 	}
 
 	u.Step(terminal.StatusOK, fmt.Sprintf("Created App Platform deployment %s for %s", deployment.ActiveDeploymentId, name))
-	ui.Output("\nDigitalOcean App Platform URL: %s", deployment.LiveUrl, terminal.WithSuccessStyle())
+	ui.Output("DigitalOcean App Platform URL: %s", deployment.Url, terminal.WithSuccessStyle())
 
 	return deployment, nil
 }
@@ -296,3 +288,7 @@ func (p *Platform) waitForAppDeployment(id string, u terminal.Status) (*godo.App
 
 	return nil, fmt.Errorf("timeout waiting to app (%s) deployment", id)
 }
+
+var _ component.Platform = (*Platform)(nil)
+var _ component.PlatformReleaser = (*Platform)(nil)
+var _ component.Destroyer = (*Platform)(nil)
