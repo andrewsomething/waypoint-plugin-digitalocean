@@ -34,7 +34,7 @@ app "example-nodejs" {
 
 The following configuration options are supported. They are all optional.
 
-* `access_token - Required if `DIGITALOCEAN_ACCESS_TOKEN` is not set
+* `access_token` - Required if `DIGITALOCEAN_ACCESS_TOKEN` is not set
 * `name` - Defaults to the app's name
 * `region` - Defaults to nearest region
 * `instance_size_slug` - Defaults to `basic-xxs`
